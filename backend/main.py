@@ -142,6 +142,23 @@ async def upload_lab_data(file: UploadFile = File(...), db: Session = Depends(ge
     try:
         contents = await file.read()
         df = pd.read_excel(io.BytesIO(contents), header=1)
+        
+        # --- FIX: Convert Excel serial dates (like 46174) to valid PostgreSQL datetimes ---
+        def convert_to_date(val):
+            if pd.isna(val) or val == "" or val is None:
+                return None
+            if isinstance(val, (int, float)):
+                # Excel serial dates represent days since Dec 30, 1899
+                return pd.to_datetime('1899-12-30') + pd.to_timedelta(val, 'D')
+            # Let pandas handle standard strings/timestamps
+            return pd.to_datetime(val, errors='coerce')
+
+        date_cols = ['appdate', 'labtest_date', 'receive_date', 'finishdate', 'cancel_date']
+        for col in date_cols:
+            if col in df.columns:
+                df[col] = df[col].apply(convert_to_date)
+        # ---------------------------------------------------------------------------------
+
         df = df.astype(object).where(pd.notnull(df), None)
 
         records = []
