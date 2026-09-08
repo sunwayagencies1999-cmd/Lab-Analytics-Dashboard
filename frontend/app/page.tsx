@@ -94,7 +94,7 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("${process.env.NEXT_PUBLIC_API_URL}/api/upload", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, {
         method: "POST",
         body: formData,
       });
